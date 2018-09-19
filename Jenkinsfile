@@ -24,5 +24,32 @@ stage('push image') {
     }
 }
 }
+stage('push chart') {
+    steps {
+        script {
+            def filename = 'helm/kube-app/values.yaml'
+            def data = readYaml file: filename
+            data.image.tag = env.BUILD_NUMBER
+            sh "rm $filename"
+            writeYaml file: filename, data: data
+        }
+
+        script {
+            def filename = 'helm/kube-app/Chart.yaml'
+            def data = readYaml file: filename
+            data.version = env.BUILD_NUMBER
+            sh "rm $filename"
+            writeYaml file: filename, data: data
+        }
+
+        sh 'helm push helm/kube-app https://repomanage.rdc.aliyun.com/helm_repositories/1148-test --username=$HELM_USERNAME --password=$HELM_PASSWORD  --version=$BUILD_NUMBER'
+    }
+}
+stage('Deploy To Dev') {
+  steps {
+        input 'Do you approve dev?'
+        sh 'helm upgrade kube-app-dev --install --namespace=huaihu helm/kube-app'
+  }
+}
   }
 }
